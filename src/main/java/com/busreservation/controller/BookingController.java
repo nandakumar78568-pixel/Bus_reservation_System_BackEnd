@@ -28,13 +28,26 @@ public class BookingController {
     @Autowired private CancellationRepository cancellationRepository;
     @Autowired private JwtUtil jwtUtil;
 
-    // Creates a booking and returns full structured details the frontend can render directly
+    private ResponseEntity<Integer> resolveUserId(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
+        }
+        String token = authHeader.substring(7);
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(jwtUtil.extractUserId(token));
+    }
+
     @PostMapping
     @Transactional
     public ResponseEntity<?> createBooking(@RequestBody BookingRequest request,
                                              @RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.substring(7);
-        Integer userId = jwtUtil.extractUserId(token);
+        ResponseEntity<Integer> userIdResult = resolveUserId(authHeader);
+        if (userIdResult.getStatusCode().isError() || userIdResult.getBody() == null) {
+            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+        }
+        Integer userId = userIdResult.getBody();
 
         Schedule schedule = scheduleRepository.findById(request.getScheduleId())
                 .orElseThrow(() -> new RuntimeException("Schedule not found"));
@@ -73,7 +86,6 @@ public class BookingController {
             Booking savedBooking = bookingRepository.save(booking);
             bookingIds.add(savedBooking.getBookingId());
 
-            // Save passenger record
             Passenger passenger = new Passenger();
             passenger.setBooking(savedBooking);
             passenger.setSeat(seat);
@@ -82,7 +94,6 @@ public class BookingController {
             passenger.setGender(Passenger.Gender.valueOf(p.getGender()));
             passengerRepository.save(passenger);
 
-            // Record payment
             Payment payment = new Payment();
             payment.setBooking(savedBooking);
             payment.setAmount(schedule.getFare());
@@ -94,7 +105,6 @@ public class BookingController {
             totalFare += schedule.getFare();
         }
 
-        // Build structured response matching what BookingConfirmation.jsx expects
         Map<String, Object> response = new HashMap<>();
         response.put("booking_id", bookingIds.isEmpty() ? null : bookingIds.get(0));
         response.put("bus_number", schedule.getBus().getBusNumber());
@@ -109,23 +119,42 @@ public class BookingController {
     }
 
     @GetMapping("/user/{userId}")
-    public List<Booking> getUserBookings(@PathVariable Integer userId) {
-        return bookingRepository.findByUser_UserId(userId);
+    public ResponseEntity<?> getUserBookings(@PathVariable Integer userId,
+                                               @RequestHeader("Authorization") String authHeader) {
+        ResponseEntity<Integer> callerResult = resolveUserId(authHeader);
+        if (callerResult.getStatusCode().isError() || callerResult.getBody() == null) {
+            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+        }
+        if (!callerResult.getBody().equals(userId)) {
+            return ResponseEntity.status(403).body("You may only view your own bookings");
+        }
+        return ResponseEntity.ok(bookingRepository.findByUser_UserId(userId));
     }
 
     @PutMapping("/{bookingId}/cancel")
     @Transactional
     public ResponseEntity<?> cancelBooking(@PathVariable Integer bookingId,
-                                             @RequestParam(required = false) String reason) {
+                                             @RequestParam(required = false) String reason,
+                                             @RequestHeader("Authorization") String authHeader) {
+        ResponseEntity<Integer> callerResult = resolveUserId(authHeader);
+        if (callerResult.getStatusCode().isError() || callerResult.getBody() == null) {
+            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+        }
+
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (!booking.getUser().getUserId().equals(callerResult.getBody())) {
+            return ResponseEntity.status(403).body("You may only cancel your own bookings");
+        }
+
         booking.setStatus(Booking.Status.Cancelled);
         bookingRepository.save(booking);
 
         Cancellation cancellation = new Cancellation();
         cancellation.setBooking(booking);
         cancellation.setReason(reason != null ? reason : "User requested cancellation");
-        cancellation.setRefundAmount(booking.getSchedule().getFare() * 0.9); // 10% cancellation fee example
+        cancellation.setRefundAmount(booking.getSchedule().getFare() * 0.9);
         cancellation.setRefundStatus(Cancellation.RefundStatus.Pending);
         cancellationRepository.save(cancellation);
 

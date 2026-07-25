@@ -1,5 +1,6 @@
 package com.busreservation.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class BookingRequest {
@@ -9,6 +10,7 @@ public class BookingRequest {
     private List<PassengerDTO> passengers;
 
     public static class PassengerDTO {
+        @JsonProperty("seat_id")
         private Integer seatId;
         private String name;
         private Integer age;

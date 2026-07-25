@@ -22,12 +22,19 @@ public class SeatLockController {
     @PostMapping
     public ResponseEntity<?> lockSeat(@RequestParam Integer scheduleId, @RequestParam Integer seatId,
                                         @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Missing or malformed Authorization header");
+        }
         String token = authHeader.substring(7);
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(401).body("Invalid or expired token");
+        }
         Integer userId = jwtUtil.extractUserId(token);
 
         Optional<SeatLock> existing = seatLockRepository.findBySchedule_ScheduleIdAndSeat_SeatId(scheduleId, seatId);
 
-        if (existing.isPresent() && existing.get().getExpiresAt().isAfter(LocalDateTime.now())) {
+        if (existing.isPresent() && existing.get().getExpiresAt().isAfter(LocalDateTime.now())
+                && !existing.get().getUser().getUserId().equals(userId)) {
             return ResponseEntity.badRequest().body("Seat is currently locked by another user");
         }
 
@@ -42,7 +49,6 @@ public class SeatLockController {
         return ResponseEntity.ok("Seat locked for 5 minutes");
     }
 
-    // Runs every 60 seconds to clear expired locks
     @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
     public void clearExpiredLocks() {
         seatLockRepository.findByExpiresAtBefore(LocalDateTime.now())

@@ -30,6 +30,7 @@ public class AuthController {
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User saved = userRepository.save(user);
+        saved.setPassword(null);
         return ResponseEntity.ok(saved);
     }
 
@@ -43,6 +44,7 @@ public class AuthController {
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId());
 
+        user.setPassword(null);
         HashMap<String, Object> response = new HashMap<>();
         response.put("token", token);
         response.put("user", user);

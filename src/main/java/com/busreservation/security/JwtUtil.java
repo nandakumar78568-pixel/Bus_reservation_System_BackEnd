@@ -33,10 +33,10 @@ public class JwtUtil {
         return (String) Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody().get("role");
     }
 
-    public Integer extractUserId(String token) {
-        return (Integer) Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody().get("userId");
-    }
-
+  public Integer extractUserId(String token) {
+    Object userId = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody().get("userId");
+    return userId != null ? ((Number) userId).intValue() : null;
+}
     public boolean validateToken(String token) {
         try {
             Jwts.parser().setSigningKey(secret).parseClaimsJws(token);

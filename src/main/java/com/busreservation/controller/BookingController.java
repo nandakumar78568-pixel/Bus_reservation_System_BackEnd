@@ -72,7 +72,24 @@ public class BookingController {
         try {
             paymentMethod = Payment.PaymentMethod.valueOf(request.getPaymentMethod());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid paymentMethod. Must be one of Paytm, DebitCard, CreditCard, NetBanking");
+            return ResponseEntity.badRequest().body("Invalid paymentMethod. Must be one of UPI, Paytm, DebitCard, CreditCard, NetBanking");
+        }
+
+        // Payment-method-specific validation
+        String maskedCardNumber = null;
+        if (paymentMethod == Payment.PaymentMethod.UPI || paymentMethod == Payment.PaymentMethod.Paytm) {
+            if (request.getUpiId() == null || request.getUpiId().isBlank()) {
+                return ResponseEntity.badRequest().body("upiId is required for UPI/Paytm payments");
+            }
+            if (!request.getUpiId().matches("^[\\w.\\-]{2,}@[a-zA-Z]{2,}$")) {
+                return ResponseEntity.badRequest().body("upiId format looks invalid (expected something like name@bank)");
+            }
+        } else if (paymentMethod == Payment.PaymentMethod.DebitCard || paymentMethod == Payment.PaymentMethod.CreditCard) {
+            String digits = request.getCardNumber() != null ? request.getCardNumber().replaceAll("\\s", "") : "";
+            if (digits.length() < 12 || digits.length() > 19 || !digits.matches("\\d+")) {
+                return ResponseEntity.badRequest().body("A valid card number is required for card payments");
+            }
+            maskedCardNumber = "**** **** **** " + digits.substring(digits.length() - 4);
         }
 
         if (request.getPassengers() == null || request.getPassengers().isEmpty()) {
@@ -139,6 +156,11 @@ public class BookingController {
             payment.setAmount(schedule.getFare());
             payment.setPaymentMethod(paymentMethod);
             payment.setPaymentStatus(Payment.PaymentStatus.Success);
+            if (paymentMethod == Payment.PaymentMethod.UPI || paymentMethod == Payment.PaymentMethod.Paytm) {
+                payment.setUpiId(request.getUpiId());
+            } else if (paymentMethod == Payment.PaymentMethod.DebitCard || paymentMethod == Payment.PaymentMethod.CreditCard) {
+                payment.setMaskedCardNumber(maskedCardNumber);
+            }
             paymentRepository.save(payment);
 
             bookedSeatNumbers.add(seat.getSeatNumber());
@@ -197,16 +219,19 @@ public class BookingController {
         booking.setStatus(Booking.Status.Cancelled);
         bookingRepository.save(booking);
 
+        double refundAmount = booking.getSchedule().getFare() * 0.9;
+
         Cancellation cancellation = new Cancellation();
         cancellation.setBooking(booking);
         cancellation.setReason(reason != null ? reason : "User requested cancellation");
-        cancellation.setRefundAmount(booking.getSchedule().getFare() * 0.9);
+        cancellation.setRefundAmount(refundAmount);
         cancellation.setRefundStatus(Cancellation.RefundStatus.Pending);
         cancellationRepository.save(cancellation);
 
         Map<String, Object> response = new HashMap<>();
         response.put("bookingId", booking.getBookingId());
         response.put("status", booking.getStatus());
+        response.put("refundAmount", refundAmount);
         response.put("message", "Booking cancelled, refund pending");
         return ResponseEntity.ok(response);
     }

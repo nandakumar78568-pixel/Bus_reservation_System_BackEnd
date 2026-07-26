@@ -24,7 +24,13 @@ public class Payment {
 
     private LocalDateTime paymentDate = LocalDateTime.now();
 
-    public enum PaymentMethod { Paytm, DebitCard, CreditCard, NetBanking }
+    // Only populated for UPI/Paytm payments
+    private String upiId;
+
+    // Only populated for card payments — stores a masked value (never the full number)
+    private String maskedCardNumber;
+
+    public enum PaymentMethod { UPI, Paytm, DebitCard, CreditCard, NetBanking }
     public enum PaymentStatus { Success, Failed, Refunded }
 
     public Integer getPaymentId() { return paymentId; }
@@ -39,4 +45,8 @@ public class Payment {
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
     public LocalDateTime getPaymentDate() { return paymentDate; }
     public void setPaymentDate(LocalDateTime paymentDate) { this.paymentDate = paymentDate; }
+    public String getUpiId() { return upiId; }
+    public void setUpiId(String upiId) { this.upiId = upiId; }
+    public String getMaskedCardNumber() { return maskedCardNumber; }
+    public void setMaskedCardNumber(String maskedCardNumber) { this.maskedCardNumber = maskedCardNumber; }
 }

@@ -9,6 +9,8 @@ public class BookingRequest {
     private Integer droppingPointId;
     private String journeyDate;
     private String paymentMethod;
+    private String upiId;
+    private String cardNumber;
     private List<PassengerDTO> passengers;
 
     public static class PassengerDTO {
@@ -38,6 +40,10 @@ public class BookingRequest {
     public void setJourneyDate(String journeyDate) { this.journeyDate = journeyDate; }
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    public String getUpiId() { return upiId; }
+    public void setUpiId(String upiId) { this.upiId = upiId; }
+    public String getCardNumber() { return cardNumber; }
+    public void setCardNumber(String cardNumber) { this.cardNumber = cardNumber; }
     public List<PassengerDTO> getPassengers() { return passengers; }
     public void setPassengers(List<PassengerDTO> passengers) { this.passengers = passengers; }
 }

@@ -9,6 +9,7 @@ C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busres
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\controller\AdminScheduleController.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\model\Cancellation.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\dto\BookingRequest.java
+C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\controller\AdminBoardingPointController.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\controller\AdminRouteController.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\repository\PassengerRepository.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\model\Booking.java

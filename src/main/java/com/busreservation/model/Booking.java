@@ -1,6 +1,7 @@
 package com.busreservation.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,6 +31,8 @@ public class Booking {
     @JoinColumn(name = "dropping_point_id")
     private BoardingPoint droppingPoint;
 
+    private LocalDate journeyDate;
+
     private LocalDateTime bookingDate = LocalDateTime.now();
 
     @Enumerated(EnumType.STRING)
@@ -49,6 +52,8 @@ public class Booking {
     public void setBoardingPoint(BoardingPoint boardingPoint) { this.boardingPoint = boardingPoint; }
     public BoardingPoint getDroppingPoint() { return droppingPoint; }
     public void setDroppingPoint(BoardingPoint droppingPoint) { this.droppingPoint = droppingPoint; }
+    public LocalDate getJourneyDate() { return journeyDate; }
+    public void setJourneyDate(LocalDate journeyDate) { this.journeyDate = journeyDate; }
     public LocalDateTime getBookingDate() { return bookingDate; }
     public void setBookingDate(LocalDateTime bookingDate) { this.bookingDate = bookingDate; }
     public Status getStatus() { return status; }

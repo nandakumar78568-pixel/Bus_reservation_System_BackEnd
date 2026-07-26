@@ -24,7 +24,7 @@ public class Payment {
 
     private LocalDateTime paymentDate = LocalDateTime.now();
 
-    public enum PaymentMethod { Card, UPI, Cash }
+    public enum PaymentMethod { Paytm, DebitCard, CreditCard, NetBanking }
     public enum PaymentStatus { Success, Failed, Refunded }
 
     public Integer getPaymentId() { return paymentId; }

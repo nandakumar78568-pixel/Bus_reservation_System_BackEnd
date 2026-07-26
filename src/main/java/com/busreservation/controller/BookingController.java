@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +55,26 @@ public class BookingController {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (request.getJourneyDate() == null || request.getJourneyDate().isBlank()) {
+            return ResponseEntity.badRequest().body("journeyDate is required");
+        }
+        LocalDate journeyDate;
+        try {
+            journeyDate = LocalDate.parse(request.getJourneyDate());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Invalid journeyDate format, expected yyyy-MM-dd");
+        }
+
+        if (request.getPaymentMethod() == null || request.getPaymentMethod().isBlank()) {
+            return ResponseEntity.badRequest().body("paymentMethod is required");
+        }
+        Payment.PaymentMethod paymentMethod;
+        try {
+            paymentMethod = Payment.PaymentMethod.valueOf(request.getPaymentMethod());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Invalid paymentMethod. Must be one of Paytm, DebitCard, CreditCard, NetBanking");
+        }
+
         List<String> bookedSeatNumbers = new ArrayList<>();
         List<Integer> bookingIds = new ArrayList<>();
         double totalFare = 0;
@@ -75,6 +96,7 @@ public class BookingController {
             booking.setSchedule(schedule);
             booking.setSeat(seat);
             booking.setStatus(Booking.Status.Confirmed);
+            booking.setJourneyDate(journeyDate);
 
             if (request.getBoardingPointId() != null) {
                 booking.setBoardingPoint(boardingPointRepository.findById(request.getBoardingPointId()).orElse(null));
@@ -97,7 +119,7 @@ public class BookingController {
             Payment payment = new Payment();
             payment.setBooking(savedBooking);
             payment.setAmount(schedule.getFare());
-            payment.setPaymentMethod(Payment.PaymentMethod.UPI);
+            payment.setPaymentMethod(paymentMethod);
             payment.setPaymentStatus(Payment.PaymentStatus.Success);
             paymentRepository.save(payment);
 
@@ -111,6 +133,8 @@ public class BookingController {
         response.put("source", schedule.getRoute().getSource());
         response.put("destination", schedule.getRoute().getDestination());
         response.put("departure_time", schedule.getDepartureTime());
+        response.put("journey_date", journeyDate);
+        response.put("payment_method", paymentMethod);
         response.put("seat_numbers", bookedSeatNumbers);
         response.put("total_fare", totalFare);
         response.put("status", "Confirmed");

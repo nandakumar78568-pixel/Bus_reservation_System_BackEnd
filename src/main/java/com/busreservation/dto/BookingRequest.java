@@ -7,6 +7,8 @@ public class BookingRequest {
     private Integer scheduleId;
     private Integer boardingPointId;
     private Integer droppingPointId;
+    private String journeyDate;
+    private String paymentMethod;
     private List<PassengerDTO> passengers;
 
     public static class PassengerDTO {
@@ -32,6 +34,10 @@ public class BookingRequest {
     public void setBoardingPointId(Integer boardingPointId) { this.boardingPointId = boardingPointId; }
     public Integer getDroppingPointId() { return droppingPointId; }
     public void setDroppingPointId(Integer droppingPointId) { this.droppingPointId = droppingPointId; }
+    public String getJourneyDate() { return journeyDate; }
+    public void setJourneyDate(String journeyDate) { this.journeyDate = journeyDate; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
     public List<PassengerDTO> getPassengers() { return passengers; }
     public void setPassengers(List<PassengerDTO> passengers) { this.passengers = passengers; }
 }

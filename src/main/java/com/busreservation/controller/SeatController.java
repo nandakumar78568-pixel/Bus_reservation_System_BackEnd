@@ -8,6 +8,7 @@ import com.busreservation.repository.BookingRepository;
 import com.busreservation.repository.ScheduleRepository;
 import com.busreservation.repository.SeatRepository;
 import com.busreservation.repository.SeatLockRepository;
+import com.busreservation.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
@@ -24,11 +25,23 @@ public class SeatController {
     @Autowired private ScheduleRepository scheduleRepository;
     @Autowired private BookingRepository bookingRepository;
     @Autowired private SeatLockRepository seatLockRepository;
+    @Autowired private JwtUtil jwtUtil;
 
     @GetMapping("/{scheduleId}")
-    public List<Map<String, Object>> getSeats(@PathVariable Integer scheduleId) {
+    public List<Map<String, Object>> getSeats(@PathVariable Integer scheduleId,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new RuntimeException("Schedule not found"));
+
+        Integer currentUserId = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtUtil.validateToken(token)) {
+                currentUserId = jwtUtil.extractUserId(token);
+            }
+        }
+        final Integer userId = currentUserId;
 
         List<Seat> seats = seatRepository.findByBus_BusId(schedule.getBus().getBusId());
         List<Booking> confirmedBookings = bookingRepository.findBySchedule_ScheduleId(scheduleId);
@@ -45,13 +58,15 @@ public class SeatController {
                             && b.getStatus() == Booking.Status.Confirmed);
             map.put("booked", booked);
 
-            boolean locked = activeLocks.stream()
-                    .anyMatch(l -> l.getSeat().getSeatId().equals(seat.getSeatId()));
-            map.put("locked", locked);
+            SeatLock lockForSeat = activeLocks.stream()
+                    .filter(l -> l.getSeat().getSeatId().equals(seat.getSeatId()))
+                    .findFirst().orElse(null);
+
+            map.put("locked", lockForSeat != null);
+            map.put("locked_by_me", lockForSeat != null && userId != null
+                    && lockForSeat.getUser().getUserId().equals(userId));
 
             return map;
         }).collect(Collectors.toList());
     }
-    
-    
 }

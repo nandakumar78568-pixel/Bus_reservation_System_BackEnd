@@ -75,11 +75,25 @@ public class BookingController {
             return ResponseEntity.badRequest().body("Invalid paymentMethod. Must be one of Paytm, DebitCard, CreditCard, NetBanking");
         }
 
+        if (request.getPassengers() == null || request.getPassengers().isEmpty()) {
+            return ResponseEntity.badRequest().body("At least one passenger is required");
+        }
+
         List<String> bookedSeatNumbers = new ArrayList<>();
         List<Integer> bookingIds = new ArrayList<>();
         double totalFare = 0;
 
         for (BookingRequest.PassengerDTO p : request.getPassengers()) {
+            if (p.getSeatId() == null) {
+                return ResponseEntity.badRequest().body("seat_id is required for every passenger");
+            }
+            if (p.getName() == null || p.getName().isBlank()) {
+                return ResponseEntity.badRequest().body("name is required for every passenger");
+            }
+            if (p.getGender() == null) {
+                return ResponseEntity.badRequest().body("gender is required for every passenger");
+            }
+
             boolean alreadyBooked = bookingRepository
                     .existsBySchedule_ScheduleIdAndSeat_SeatIdAndStatus(
                             request.getScheduleId(), p.getSeatId(), Booking.Status.Confirmed);
@@ -113,7 +127,11 @@ public class BookingController {
             passenger.setSeat(seat);
             passenger.setName(p.getName());
             passenger.setAge(p.getAge());
-            passenger.setGender(Passenger.Gender.valueOf(p.getGender()));
+            try {
+                passenger.setGender(Passenger.Gender.valueOf(p.getGender()));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body("Invalid gender. Must be Male, Female, or Other");
+            }
             passengerRepository.save(passenger);
 
             Payment payment = new Payment();
@@ -172,6 +190,10 @@ public class BookingController {
             return ResponseEntity.status(403).body("You may only cancel your own bookings");
         }
 
+        if (booking.getStatus() == Booking.Status.Cancelled) {
+            return ResponseEntity.badRequest().body("Booking is already cancelled");
+        }
+
         booking.setStatus(Booking.Status.Cancelled);
         bookingRepository.save(booking);
 
@@ -182,6 +204,10 @@ public class BookingController {
         cancellation.setRefundStatus(Cancellation.RefundStatus.Pending);
         cancellationRepository.save(cancellation);
 
-        return ResponseEntity.ok("Booking cancelled, refund pending");
+        Map<String, Object> response = new HashMap<>();
+        response.put("bookingId", booking.getBookingId());
+        response.put("status", booking.getStatus());
+        response.put("message", "Booking cancelled, refund pending");
+        return ResponseEntity.ok(response);
     }
 }

@@ -24,11 +24,13 @@ public class Payment {
 
     private LocalDateTime paymentDate = LocalDateTime.now();
 
-    // Only populated for UPI/Paytm payments
     private String upiId;
-
-    // Only populated for card payments — stores a masked value (never the full number)
     private String maskedCardNumber;
+
+    // Coupon applied to this payment, if any. discountAmount is this seat's
+    // share of the total discount (split evenly across passengers).
+    private String couponCode;
+    private Double discountAmount = 0.0;
 
     public enum PaymentMethod { UPI, Paytm, DebitCard, CreditCard, NetBanking }
     public enum PaymentStatus { Success, Failed, Refunded }
@@ -49,4 +51,8 @@ public class Payment {
     public void setUpiId(String upiId) { this.upiId = upiId; }
     public String getMaskedCardNumber() { return maskedCardNumber; }
     public void setMaskedCardNumber(String maskedCardNumber) { this.maskedCardNumber = maskedCardNumber; }
+    public String getCouponCode() { return couponCode; }
+    public void setCouponCode(String couponCode) { this.couponCode = couponCode; }
+    public Double getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(Double discountAmount) { this.discountAmount = discountAmount; }
 }

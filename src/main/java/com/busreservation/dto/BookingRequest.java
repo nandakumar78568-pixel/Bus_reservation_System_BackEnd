@@ -11,6 +11,7 @@ public class BookingRequest {
     private String paymentMethod;
     private String upiId;
     private String cardNumber;
+    private String couponCode;
     private List<PassengerDTO> passengers;
 
     public static class PassengerDTO {
@@ -44,6 +45,8 @@ public class BookingRequest {
     public void setUpiId(String upiId) { this.upiId = upiId; }
     public String getCardNumber() { return cardNumber; }
     public void setCardNumber(String cardNumber) { this.cardNumber = cardNumber; }
+    public String getCouponCode() { return couponCode; }
+    public void setCouponCode(String couponCode) { this.couponCode = couponCode; }
     public List<PassengerDTO> getPassengers() { return passengers; }
     public void setPassengers(List<PassengerDTO> passengers) { this.passengers = passengers; }
 }

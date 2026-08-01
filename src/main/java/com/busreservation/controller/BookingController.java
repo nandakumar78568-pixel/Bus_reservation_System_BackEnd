@@ -1,9 +1,11 @@
 package com.busreservation.controller;
 
 import com.busreservation.dto.BookingRequest;
+import com.busreservation.dto.CouponApplyResponse;
 import com.busreservation.model.*;
 import com.busreservation.repository.*;
 import com.busreservation.security.JwtUtil;
+import com.busreservation.service.CouponService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ public class BookingController {
     @Autowired private PaymentRepository paymentRepository;
     @Autowired private CancellationRepository cancellationRepository;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private CouponService couponService;
 
     private ResponseEntity<Integer> resolveUserId(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -75,7 +78,6 @@ public class BookingController {
             return ResponseEntity.badRequest().body("Invalid paymentMethod. Must be one of UPI, Paytm, DebitCard, CreditCard, NetBanking");
         }
 
-        // Payment-method-specific validation
         String maskedCardNumber = null;
         if (paymentMethod == Payment.PaymentMethod.UPI || paymentMethod == Payment.PaymentMethod.Paytm) {
             if (request.getUpiId() == null || request.getUpiId().isBlank()) {
@@ -95,6 +97,24 @@ public class BookingController {
         if (request.getPassengers() == null || request.getPassengers().isEmpty()) {
             return ResponseEntity.badRequest().body("At least one passenger is required");
         }
+
+        // ---- Coupon: validated server-side against the real subtotal.
+        // The client's earlier /api/coupons/apply preview is never trusted
+        // directly — we recompute here so a stale or tampered code/amount
+        // can't slip through.
+        double subtotal = schedule.getFare() * request.getPassengers().size();
+        double discountAmount = 0;
+        String appliedCouponCode = null;
+
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            CouponApplyResponse couponResult = couponService.evaluate(request.getCouponCode(), subtotal);
+            if (!couponResult.isValid()) {
+                return ResponseEntity.badRequest().body(couponResult.getMessage());
+            }
+            discountAmount = couponResult.getDiscountAmount();
+            appliedCouponCode = couponResult.getCode();
+        }
+        double perSeatDiscount = discountAmount / request.getPassengers().size();
 
         List<String> bookedSeatNumbers = new ArrayList<>();
         List<Integer> bookingIds = new ArrayList<>();
@@ -151,11 +171,15 @@ public class BookingController {
             }
             passengerRepository.save(passenger);
 
+            double seatFare = Math.round((schedule.getFare() - perSeatDiscount) * 100.0) / 100.0;
+
             Payment payment = new Payment();
             payment.setBooking(savedBooking);
-            payment.setAmount(schedule.getFare());
+            payment.setAmount(seatFare);
             payment.setPaymentMethod(paymentMethod);
             payment.setPaymentStatus(Payment.PaymentStatus.Success);
+            payment.setCouponCode(appliedCouponCode);
+            payment.setDiscountAmount(perSeatDiscount);
             if (paymentMethod == Payment.PaymentMethod.UPI || paymentMethod == Payment.PaymentMethod.Paytm) {
                 payment.setUpiId(request.getUpiId());
             } else if (paymentMethod == Payment.PaymentMethod.DebitCard || paymentMethod == Payment.PaymentMethod.CreditCard) {
@@ -164,8 +188,10 @@ public class BookingController {
             paymentRepository.save(payment);
 
             bookedSeatNumbers.add(seat.getSeatNumber());
-            totalFare += schedule.getFare();
+            totalFare += seatFare;
         }
+
+        totalFare = Math.round(totalFare * 100.0) / 100.0;
 
         Map<String, Object> response = new HashMap<>();
         response.put("booking_id", bookingIds.isEmpty() ? null : bookingIds.get(0));
@@ -176,6 +202,9 @@ public class BookingController {
         response.put("journey_date", journeyDate);
         response.put("payment_method", paymentMethod);
         response.put("seat_numbers", bookedSeatNumbers);
+        response.put("subtotal", Math.round(subtotal * 100.0) / 100.0);
+        response.put("coupon_code", appliedCouponCode);
+        response.put("discount_amount", Math.round(discountAmount * 100.0) / 100.0);
         response.put("total_fare", totalFare);
         response.put("status", "Confirmed");
 

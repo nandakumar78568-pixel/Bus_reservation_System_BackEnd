@@ -3,6 +3,7 @@ package com.busreservation.controller;
 import com.busreservation.model.Schedule;
 import com.busreservation.repository.ScheduleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -20,5 +21,14 @@ public class BusController {
             return scheduleRepository.findByRoute_SourceAndRoute_Destination(source, destination);
         }
         return scheduleRepository.findAll();
+    }
+
+    // Used by BookingForm to fetch the fare for a schedule so it can show a
+    // fare summary and validate coupons before the user submits a booking.
+    @GetMapping("/schedule/{scheduleId}")
+    public ResponseEntity<?> getSchedule(@PathVariable Integer scheduleId) {
+        return scheduleRepository.findById(scheduleId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(404).body("Schedule not found"));
     }
 }

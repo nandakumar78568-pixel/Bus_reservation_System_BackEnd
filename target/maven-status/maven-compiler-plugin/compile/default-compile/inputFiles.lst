@@ -1,6 +1,7 @@
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\model\Bus.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\repository\ReviewRepository.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\controller\RoutePointsController.java
+C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\config\SeatSeeder.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\repository\CancellationRepository.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\repository\PaymentRepository.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\repository\ScheduleRepository.java

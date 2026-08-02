@@ -16,6 +16,7 @@ C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busres
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\model\SeatLock.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\controller\CouponController.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\model\Schedule.java
+C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\dto\AdminBusScheduleRequest.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\model\Seat.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\repository\BoardingPointRepository.java
 C:\Users\acer\Downloads\bus-reservation-backend\backend\src\main\java\com\busreservation\model\User.java

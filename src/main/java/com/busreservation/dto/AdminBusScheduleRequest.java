@@ -1,4 +1,4 @@
-ackage com.busreservation.dto;
+package com.busreservation.dto;
  
 public class AdminBusScheduleRequest {
     private String busNumber;

@@ -131,7 +131,7 @@ public class AdminController {
 
     // Shared by both the "/full" endpoint and SeatSeeder's top-up logic, so
     // seat-type assignment stays consistent no matter how seats were created.
-    static Seat.SeatType determineSeatType(Bus.BusType busType, int seatIndex, int totalSeats) {
+   public static Seat.SeatType determineSeatType(Bus.BusType busType, int seatIndex, int totalSeats) {
         if (busType == Bus.BusType.Sleeper) {
             return Seat.SeatType.Sleeper;
         }

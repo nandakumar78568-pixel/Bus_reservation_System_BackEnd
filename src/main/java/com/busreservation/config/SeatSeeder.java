@@ -1,5 +1,6 @@
 package com.busreservation.config;
 
+import com.busreservation.controller.AdminController;
 import com.busreservation.model.Bus;
 import com.busreservation.model.Seat;
 import com.busreservation.repository.BusRepository;
@@ -40,7 +41,10 @@ public class SeatSeeder implements CommandLineRunner {
                 Seat seat = new Seat();
                 seat.setBus(bus);
                 seat.setSeatNumber("S" + nextNumber);
-                seat.setSeatType(nextNumber % 2 == 0 ? Seat.SeatType.Aisle : Seat.SeatType.Window);
+                // Same seat-type rule as the admin "add bus" flow, so
+                // top-up seats render correctly too (seater/sleeper mix
+                // for Semi_Sleeper, all-sleeper for Sleeper, etc).
+                seat.setSeatType(AdminController.determineSeatType(bus.getBusType(), nextNumber, TARGET_SEATS_PER_BUS));
                 seatRepository.save(seat);
                 nextNumber++;
             }

@@ -52,6 +52,9 @@ public class SeatController {
             Map<String, Object> map = new HashMap<>();
             map.put("seat_id", seat.getSeatId());
             map.put("seat_number", seat.getSeatNumber());
+            // Needed by the frontend to tell seater seats apart from sleeper
+            // berths within the same (usually Semi_Sleeper) bus.
+            map.put("seat_type", seat.getSeatType() != null ? seat.getSeatType().name() : null);
 
             boolean booked = confirmedBookings.stream()
                     .anyMatch(b -> b.getSeat().getSeatId().equals(seat.getSeatId())

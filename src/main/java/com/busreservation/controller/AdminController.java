@@ -115,15 +115,36 @@ public class AdminController {
 
         // 4. Seats — without this, seat selection would show an empty bus
         // until the next app restart (SeatSeeder only runs on startup).
+        // Seat type is driven by bus type so the frontend can render the
+        // correct layout (plain seater grid vs. sleeper berths vs. a mixed
+        // seater+sleeper layout for Semi_Sleeper).
         for (int i = 1; i <= totalSeats; i++) {
             Seat seat = new Seat();
             seat.setBus(savedBus);
             seat.setSeatNumber("S" + i);
-            seat.setSeatType(i % 2 == 0 ? Seat.SeatType.Aisle : Seat.SeatType.Window);
+            seat.setSeatType(determineSeatType(busType, i, totalSeats));
             seatRepository.save(seat);
         }
 
         return ResponseEntity.ok(savedSchedule);
+    }
+
+    // Shared by both the "/full" endpoint and SeatSeeder's top-up logic, so
+    // seat-type assignment stays consistent no matter how seats were created.
+    static Seat.SeatType determineSeatType(Bus.BusType busType, int seatIndex, int totalSeats) {
+        if (busType == Bus.BusType.Sleeper) {
+            return Seat.SeatType.Sleeper;
+        }
+        if (busType == Bus.BusType.Semi_Sleeper) {
+            // First half of the bus = regular seater, second half = sleeper berths.
+            int seaterCount = (int) Math.ceil(totalSeats / 2.0);
+            if (seatIndex <= seaterCount) {
+                return seatIndex % 2 == 0 ? Seat.SeatType.Aisle : Seat.SeatType.Window;
+            }
+            return Seat.SeatType.Sleeper;
+        }
+        // AC / Non_AC — plain seater, alternate Window/Aisle as before.
+        return seatIndex % 2 == 0 ? Seat.SeatType.Aisle : Seat.SeatType.Window;
     }
 
     @DeleteMapping("/{busId}")

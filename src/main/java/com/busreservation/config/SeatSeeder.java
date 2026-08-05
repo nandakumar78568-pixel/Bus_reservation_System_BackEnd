@@ -14,8 +14,8 @@ import java.util.List;
 @Component
 public class SeatSeeder implements CommandLineRunner {
 
-    // Change this to however many seats you want per bus
-    private static final int TARGET_SEATS_PER_BUS = 40;
+    // Fallback only used when a bus has no totalSeats value set.
+    private static final int DEFAULT_SEATS_PER_BUS = 40;
 
     @Autowired
     private BusRepository busRepository;
@@ -28,29 +28,49 @@ public class SeatSeeder implements CommandLineRunner {
         List<Bus> buses = busRepository.findAll();
 
         for (Bus bus : buses) {
+            int target = (bus.getTotalSeats() != null && bus.getTotalSeats() > 0)
+                    ? bus.getTotalSeats()
+                    : DEFAULT_SEATS_PER_BUS;
+
             List<Seat> existingSeats = seatRepository.findByBus_BusId(bus.getBusId());
             int currentCount = existingSeats.size();
 
-            if (currentCount >= TARGET_SEATS_PER_BUS) {
-                continue; // already has enough seats
+            // --- Step 1: top up seat COUNT if this bus has fewer than target ---
+            if (currentCount < target) {
+                int nextNumber = currentCount + 1;
+                for (int i = currentCount; i < target; i++) {
+                    Seat seat = new Seat();
+                    seat.setBus(bus);
+                    seat.setSeatNumber("S" + nextNumber);
+                    seat.setSeatType(AdminController.determineSeatType(bus.getBusType(), nextNumber, target));
+                    seatRepository.save(seat);
+                    nextNumber++;
+                }
+                System.out.println("Added " + (target - currentCount) + " seats to bus " + bus.getBusNumber());
             }
 
-            int nextNumber = currentCount + 1;
+            // --- Step 2: repair seat_type for ALL of this bus's seats ---
+            // Fixes seats that were seeded incorrectly (e.g. via raw SQL
+            // scripts) or computed against a stale totalSeats value, so a
+            // Semi_Sleeper/Sleeper bus always ends up with a correct split
+            // no matter how its seats originally got created.
+            List<Seat> allSeats = seatRepository.findByBus_BusId(bus.getBusId());
+            allSeats.sort((a, b) -> a.getSeatId().compareTo(b.getSeatId()));
 
-            for (int i = currentCount; i < TARGET_SEATS_PER_BUS; i++) {
-                Seat seat = new Seat();
-                seat.setBus(bus);
-                seat.setSeatNumber("S" + nextNumber);
-                // Same seat-type rule as the admin "add bus" flow, so
-                // top-up seats render correctly too (seater/sleeper mix
-                // for Semi_Sleeper, all-sleeper for Sleeper, etc).
-                seat.setSeatType(AdminController.determineSeatType(bus.getBusType(), nextNumber, TARGET_SEATS_PER_BUS));
-                seatRepository.save(seat);
-                nextNumber++;
+            int position = 1;
+            int fixedCount = 0;
+            for (Seat seat : allSeats) {
+                Seat.SeatType correctType = AdminController.determineSeatType(bus.getBusType(), position, allSeats.size());
+                if (seat.getSeatType() != correctType) {
+                    seat.setSeatType(correctType);
+                    seatRepository.save(seat);
+                    fixedCount++;
+                }
+                position++;
             }
-
-            System.out.println("Added " + (TARGET_SEATS_PER_BUS - currentCount)
-                    + " seats to bus " + bus.getBusNumber());
+            if (fixedCount > 0) {
+                System.out.println("Repaired seat_type on " + fixedCount + " seat(s) for bus " + bus.getBusNumber());
+            }
         }
     }
 }
